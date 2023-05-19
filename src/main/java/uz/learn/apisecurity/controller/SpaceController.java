@@ -15,15 +15,14 @@ public class SpaceController {
 
 	public JSONObject createSpace(Request request, Response response) {
 		var json = new org.json.JSONObject(request.body());
-		var spaceName = json.get("name");
-		var owner = json.get("owner");
+		var spaceName = json.getString("name");
+		var owner = json.getString("owner");
 		return database.withTransaction(tx-> {
 			var spaceId = database.findUniqueLong("SELECT NEXT VALUE FOR space_id_seq");
 			database.updateUnique(
 					"INSERT INTO spaces(space_id, name, owner) " +
-					"VALUES(" + spaceId  + ", '" + spaceName + 
-					"', '" + owner + "');"
-					);
+					"VALUES(?, ?, ?);",
+					spaceId, spaceName, owner);
 			response.status(201);
 			response.header("Location", "/spaces/" + spaceId);
 			return new org.json.JSONObject().put("name", spaceName).put("uri", "/spaces/" + spaceId);
