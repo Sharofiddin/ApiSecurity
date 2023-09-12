@@ -16,7 +16,11 @@ public class SpaceController {
 	public JSONObject createSpace(Request request, Response response) {
 		var json = new org.json.JSONObject(request.body());
 		var spaceName = json.getString("name");
+		if( spaceName.length() > 255) {
+			throw new IllegalStateException("Space name is too long");
+		}
 		var owner = json.getString("owner");
+		if( owner.matches("[a-zA-z0-9]{}"))
 		return database.withTransaction(tx-> {
 			var spaceId = database.findUniqueLong("SELECT NEXT VALUE FOR space_id_seq");
 			database.updateUnique(
