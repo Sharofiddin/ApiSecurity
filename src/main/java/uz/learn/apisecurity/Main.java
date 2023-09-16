@@ -12,22 +12,33 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.google.common.util.concurrent.RateLimiter;
+
 import spark.Request;
 import spark.Response;
-import spark.Spark;
 import uz.learn.apisecurity.controller.SpaceController;
+import uz.learn.apisecurity.controller.UserContorller;
 
 import static spark.Spark.*;
 
 public class Main {
+	private static final String ERROR = "error";
+
 	public static void main(String[] args) throws URISyntaxException, IOException {
 		exception(IllegalArgumentException.class, Main::badRequest);
 		exception(JSONException.class, Main::badRequest);
 		exception(EmptyResultException.class, (e, req, res)->res.status(404));
-		Spark.before((req, res)->{
+		RateLimiter rateLimiter = RateLimiter.create(2.d);
+		before((req, res)->{
+			if(!rateLimiter.tryAcquire()) {
+				res.header("Retry-After", "2");
+				halt(429);
+			}
+		});
+		before((req, res)->{
 			if(req.requestMethod().equals("POST") &&
 					!"application/json".equals(req.contentType())) {
-				halt(415, new JSONObject().put("error", "Only application/json supported").toString());
+				halt(415, new JSONObject().put(ERROR, "Only application/json supported").toString());
 			}
 		});
 		afterAfter((req, res)->{
@@ -43,10 +54,12 @@ public class Main {
 		var database = Database.forDataSource(datasource);
 		createTables(database);
 		var spaceController = new SpaceController(database);
+		var userController = new UserContorller(database);
 		post("/spaces", spaceController::createSpace);
+		post("/users", userController::registerUser);
 		after((request, response) -> response.type("application/json"));
-		internalServerError(new JSONObject().put("error", "internal server error").toString());
-		notFound(new JSONObject().put("error", "not found").toString());
+		internalServerError(new JSONObject().put(ERROR, "internal server error").toString());
+		notFound(new JSONObject().put(ERROR, "not found").toString());
 	}
 
 	private static void createTables(@NotNull Database database) throws URISyntaxException, IOException {
