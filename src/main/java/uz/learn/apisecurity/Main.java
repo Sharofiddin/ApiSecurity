@@ -41,6 +41,7 @@ public class Main {
 				halt(415, new JSONObject().put(ERROR, "Only application/json supported").toString());
 			}
 		});
+		
 		afterAfter((req, res)->{
 		res.type("application/json;charset=utf-8");	
 		res.header("X-Content-Type-Options", "nosniff");
@@ -55,6 +56,7 @@ public class Main {
 		createTables(database);
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
+		before(userController::authenticate);
 		post("/spaces", spaceController::createSpace);
 		post("/users", userController::registerUser);
 		after((request, response) -> response.type("application/json"));
