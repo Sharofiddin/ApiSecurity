@@ -52,10 +52,14 @@ public class Main {
 		});
 		var datasource = JdbcConnectionPool.create("jdbc:h2:mem:natter", "natter", "password");
 		var database = Database.forDataSource(datasource);
+		datasource = JdbcConnectionPool.create("jdbc:h2:mem:natter", "natter_api_user", "password");
 		createTables(database);
+		database = Database.forDataSource(datasource);
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
+		before(userController::authenticate);
 		post("/spaces", spaceController::createSpace);
+		post("/spaces/:spaceId/messages", spaceController::postMessage);
 		post("/users", userController::registerUser);
 		after((request, response) -> response.type("application/json"));
 		internalServerError(new JSONObject().put(ERROR, "internal server error").toString());
