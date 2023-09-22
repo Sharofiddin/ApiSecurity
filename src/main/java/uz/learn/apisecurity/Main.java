@@ -41,6 +41,7 @@ public class Main {
 				halt(415, new JSONObject().put(ERROR, "Only application/json supported").toString());
 			}
 		});
+		
 		afterAfter((req, res)->{
 		res.type("application/json;charset=utf-8");	
 		res.header("X-Content-Type-Options", "nosniff");
