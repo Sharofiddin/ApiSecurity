@@ -67,6 +67,7 @@ public class Main {
 		afterAfter(auditController::auditRequestEnd);
         before("/spaces", userController::requireAuthentication);
 		post("/spaces", spaceController::createSpace);
+		get("/spaces/:spaceId/messages/:msgId", spaceController::readMessage);
 		post("/spaces/:spaceId/messages", spaceController::postMessage);
 		post("/users", userController::registerUser);
 		get("/logs", auditController::readAuditLog);
