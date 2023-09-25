@@ -1,5 +1,7 @@
 package uz.learn.apisecurity.controller;
 
+import static spark.Spark.halt;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
@@ -20,7 +22,7 @@ public class UserContorller {
 	public UserContorller(Database database) {
 		this.database = database;
 	}
-
+    
 	public JSONObject registerUser(Request request, Response response) {
 		var json = new JSONObject(request.body());
 		var username = json.getString("username");
@@ -68,5 +70,12 @@ public class UserContorller {
 		if(hash.isPresent() && SCryptUtil.check(password, hash.get())) {
 			request.attribute("subject", username);
 		}
+	}
+	
+	public void requireAuthentication(Request request, Response response) {
+	  if(request.attribute("subject") == null) {
+		  response.header("WWW-Authenticate", "Basic realm=\"/\", charset=\"UTF-8\"");
+		  halt(401);
+	  }
 	}
 }

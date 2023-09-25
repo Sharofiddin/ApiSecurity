@@ -65,7 +65,7 @@ public class Main {
 		var auditController = new AuditController(database);
 		before(auditController::auditRequestStart);
 		afterAfter(auditController::auditRequestEnd);
-
+        before("/spaces", userController::requireAuthentication);
 		post("/spaces", spaceController::createSpace);
 		post("/spaces/:spaceId/messages", spaceController::postMessage);
 		post("/users", userController::registerUser);
@@ -85,4 +85,6 @@ public class Main {
 		res.status(400);
 		res.body("{\"error\": \"" + ex.getMessage() + "\"}" );
 	}
+
+
 }
