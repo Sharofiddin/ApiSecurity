@@ -18,6 +18,7 @@ import spark.Request;
 import spark.Response;
 import uz.learn.apisecurity.controller.SpaceController;
 import uz.learn.apisecurity.controller.UserContorller;
+import uz.learn.apisecurity.controller.AuditController;
 
 import static spark.Spark.*;
 
@@ -25,6 +26,7 @@ public class Main {
 	private static final String ERROR = "error";
 
 	public static void main(String[] args) throws URISyntaxException, IOException {
+		secure("localhost.p12", "changeit", null, null);
 		exception(IllegalArgumentException.class, Main::badRequest);
 		exception(JSONException.class, Main::badRequest);
 		exception(EmptyResultException.class, (e, req, res)->res.status(404));
@@ -59,9 +61,16 @@ public class Main {
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
 		before(userController::authenticate);
+
+		var auditController = new AuditController(database);
+		before(auditController::auditRequestStart);
+		afterAfter(auditController::auditRequestEnd);
+
 		post("/spaces", spaceController::createSpace);
 		post("/spaces/:spaceId/messages", spaceController::postMessage);
 		post("/users", userController::registerUser);
+		get("/logs", auditController::readAuditLog);
+		
 		after((request, response) -> response.type("application/json"));
 		internalServerError(new JSONObject().put(ERROR, "internal server error").toString());
 		notFound(new JSONObject().put(ERROR, "not found").toString());
