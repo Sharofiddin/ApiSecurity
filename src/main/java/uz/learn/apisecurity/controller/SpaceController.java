@@ -42,7 +42,7 @@ public class SpaceController {
 					spaceId, spaceName, owner);
 			database.updateUnique(
 					"""
-					INSERT INTO permissions( space_id", user_id, perms)
+					INSERT INTO permissions( space_id, user_id, perms)
 					VALUES (?,?,?)
 					""",spaceId, owner, "rwd" );
 			response.status(201);
