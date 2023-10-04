@@ -67,9 +67,19 @@ public class Main {
 		afterAfter(auditController::auditRequestEnd);
         before("/spaces", userController::requireAuthentication);
 		post("/spaces", spaceController::createSpace);
+		
+		before("/spaces/:spaceId/messages/*", userController.requirePermission("GET", "r"));
 		get("/spaces/:spaceId/messages/:msgId", spaceController::readMessage);
+		
+		before("/spaces/:spaceId/messages", userController.requirePermission("GET", "r"));
+		get("/spaces/:spaceId/messages/:msgId", spaceController::findMessages);
+		
+		before("/spaces/:spaceId/messages", userController.requirePermission("POST", "w"));
 		post("/spaces/:spaceId/messages", spaceController::postMessage);
+		
 		post("/users", userController::registerUser);
+		
+		before("/logs", userController::requireAuthentication);
 		get("/logs", auditController::readAuditLog);
 		
 		after((request, response) -> response.type("application/json"));
