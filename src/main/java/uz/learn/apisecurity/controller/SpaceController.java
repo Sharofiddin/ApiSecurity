@@ -94,7 +94,36 @@ public class SpaceController {
 	    response.status(200);
 	    return message;
 	  }
+      
+	  public JSONObject deleteMessage(Request request, Response response) {
+		    var spaceId = Long.parseLong(request.params(SPACE_ID));
+		    var msgId = Long.parseLong(request.params(":msgId"));
 
+		    database.updateUnique(
+		        "DELETE FROM messages WHERE msg_id = ? AND space_id = ?",
+		        msgId, spaceId);
+		    response.status(204);
+		    return new JSONObject();
+		  }
+	  
+	  public JSONObject addMember(Request request, Response response) {
+		  var json = new JSONObject(request.body());
+		  var username = json.getString("username");
+		  var spaceId = request.params(SPACE_ID);
+		  var perms = json.getString("permissions");
+		  if(!perms.matches("r?w?d?")) {
+			  throw new IllegalArgumentException("invalid permissions");
+		  }
+		  database.update(
+		     """
+                INSERT INTO Permissions (space_id, user_id, perms) 
+                VALUES(?,?,?)
+             """, 
+            spaceId, username, perms);
+		  return new JSONObject().put("username", username).put("permissions", perms);
+		  
+	  }
+	  
 	  public JSONArray findMessages(Request request, Response response) {
 	    var since = Instant.now().minus(1, ChronoUnit.DAYS);
 	    if (request.queryParams("since") != null) {

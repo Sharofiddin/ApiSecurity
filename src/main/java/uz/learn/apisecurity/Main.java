@@ -77,6 +77,13 @@ public class Main {
 		before("/spaces/:spaceId/messages", userController.requirePermission("POST", "w"));
 		post("/spaces/:spaceId/messages", spaceController::postMessage);
 		
+		before("/spaces/:spaceId/messages/:msgId", userController.requirePermission("DELETE", "d"));
+		delete("/spaces/:spaceId/messages/:msgId", spaceController::deleteMessage);
+		
+		before("/spaces/:spaceId/members", userController.requirePermission("POST", "r"));
+		post("/spaces/:spaceId/members", spaceController::addMember);
+		
+		
 		post("/users", userController::registerUser);
 		
 		before("/logs", userController::requireAuthentication);
