@@ -80,7 +80,7 @@ public class Main {
 		before("/spaces/:spaceId/messages/:msgId", userController.requirePermission("DELETE", "d"));
 		delete("/spaces/:spaceId/messages/:msgId", spaceController::deleteMessage);
 		
-		before("/spaces/:spaceId/members", userController.requirePermission("POST", "r"));
+		before("/spaces/:spaceId/members", userController.requirePermission("POST", "rwd"));
 		post("/spaces/:spaceId/members", spaceController::addMember);
 		
 		
