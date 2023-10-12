@@ -14,3 +14,6 @@ curl -i -u demo:1qazxsw2 -X POST -H 'Content-Type: application/json' -d '{"autho
 
 # add member
 curl -X POST -i -u 'demo:1qazxsw2' -H 'Content-Type: application/json' -d '{"username":"demo2", "space_id":1, "permissions":"r"}' https://localhost:4567/spaces/1/members
+
+# delete msg
+curl -i -X DELETE -u demoevil:1qazxsw2 https://localhost:4567/spaces/1/messages/1
