@@ -27,6 +27,7 @@ public class Main {
 
 	public static void main(String[] args) throws URISyntaxException, IOException {
 		secure("localhost.p12", "changeit", null, null);
+		staticFileLocation("/public");
 		exception(IllegalArgumentException.class, Main::badRequest);
 		exception(JSONException.class, Main::badRequest);
 		exception(EmptyResultException.class, (e, req, res)->res.status(404));
@@ -80,7 +81,7 @@ public class Main {
 		before("/spaces/:spaceId/messages/:msgId", userController.requirePermission("DELETE", "d"));
 		delete("/spaces/:spaceId/messages/:msgId", spaceController::deleteMessage);
 		
-		before("/spaces/:spaceId/members", userController.requirePermission("POST", "r"));
+		before("/spaces/:spaceId/members", userController.requirePermission("POST", "rwd"));
 		post("/spaces/:spaceId/members", spaceController::addMember);
 		
 		
