@@ -18,6 +18,9 @@ import spark.Request;
 import spark.Response;
 import uz.learn.apisecurity.controller.SpaceController;
 import uz.learn.apisecurity.controller.UserContorller;
+import uz.learn.apisecurity.token.CookieTokenStore;
+import uz.learn.apisecurity.token.TokenController;
+import uz.learn.apisecurity.token.TokenStore;
 import uz.learn.apisecurity.controller.AuditController;
 
 import static spark.Spark.*;
@@ -61,11 +64,18 @@ public class Main {
 		database = Database.forDataSource(datasource);
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
-		before(userController::authenticate);
-
+		
+		before(userController::authenticate);		
+		TokenStore tokenStore = new CookieTokenStore();
+		var tokenController = new TokenController(tokenStore);
+		
 		var auditController = new AuditController(database);
 		before(auditController::auditRequestStart);
 		afterAfter(auditController::auditRequestEnd);
+		
+		before("/sessions", userController::requireAuthentication);
+		post("/sessions", tokenController::login);
+
         before("/spaces", userController::requireAuthentication);
 		post("/spaces", spaceController::createSpace);
 		

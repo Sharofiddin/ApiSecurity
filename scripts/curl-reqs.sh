@@ -1,5 +1,5 @@
-curl -X POST -H 'Content-Type: application/json' -d '{"username":"demo", "password":"1qazxsw2"}' https://localhost:4567/users
 
+curl -X POST -H 'Content-Type: application/json' -d '{"username":"demo", "password":"1qazxsw2"}' https://localhost:4567/users
 #create space
 curl -i -u demo:1qazxsw2 -X POST -H 'Content-Type: application/json' -d '{"name":"demoSpace", "owner":"demo"}' https://localhost:4567/spaces
 
