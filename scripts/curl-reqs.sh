@@ -17,3 +17,9 @@ curl -X POST -i -u 'demo:1qazxsw2' -H 'Content-Type: application/json' -d '{"use
 
 # delete msg
 curl -i -X DELETE -u demoevil:1qazxsw2 https://localhost:4567/spaces/1/messages/1
+
+# create session
+curl -i -c cookies -u demo:1qazxsw2 -X POST  -H 'Content-Type: application/json' https://localhost:4567/sessions
+
+# create space with cookie
+curl -i -b cookies -X POST -H 'Content-Type: application/json' -d '{"name":"demoSpace", "owner":"demo"}' https://localhost:4567/spaces

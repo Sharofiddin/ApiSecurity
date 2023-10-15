@@ -65,9 +65,10 @@ public class Main {
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
 		
-		before(userController::authenticate);		
 		TokenStore tokenStore = new CookieTokenStore();
 		var tokenController = new TokenController(tokenStore);
+		before(userController::authenticate);
+		before(tokenController::validateToken);
 		
 		var auditController = new AuditController(database);
 		before(auditController::auditRequestStart);
