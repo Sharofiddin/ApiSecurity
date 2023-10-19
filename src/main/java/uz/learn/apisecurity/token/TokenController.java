@@ -27,7 +27,11 @@ public class TokenController {
 	}
 	
 	public void validateToken(Request request, Response response) {
-		tokenStore.read(request, null).ifPresent(token-> {
+		var tokenId = request.headers("X-CSRF-TOKEN");
+		if(tokenId == null) {
+			return;
+		}
+		tokenStore.read(request, tokenId).ifPresent(token-> {
 			if(!Instant.now().isAfter(token.expiry)) {
 				request.attribute("subject", token.username);
 				token.attributes.forEach(request::attribute);
