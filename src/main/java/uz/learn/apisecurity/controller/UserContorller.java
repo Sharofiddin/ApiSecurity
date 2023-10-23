@@ -75,7 +75,6 @@ public class UserContorller {
 	
 	public void requireAuthentication(Request request, Response response) {
 	  if(request.attribute("subject") == null) {
-		  response.header("WWW-Authenticate", "Basic realm=\"/\", charset=\"UTF-8\"");
 		  halt(401);
 	  }
 	}

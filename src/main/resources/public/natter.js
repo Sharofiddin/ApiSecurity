@@ -8,7 +8,8 @@ function createSpace(name, owner) {
         credentials: 'include',
         body: JSON.stringify(data),
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': getCookie('csrfToken')
         }
     })
     .then(response => {
@@ -20,3 +21,13 @@ function createSpace(name, owner) {
     })
     .then(json => console.log('Created space: ', json.name, json.uri))
     .catch(error => console.error('Error: ', error));}
+
+function getCookie(cookieName) {
+  var cookieValue = document.cookie.split(';')
+  .map(item=>item.split('=')
+    .map(x => decodeURIComponent(x.trim())))
+  .filter(item=>item[0] === cookieName)[0];
+  if(cookieValue){
+    return cookieValue[1];
+  }
+}
