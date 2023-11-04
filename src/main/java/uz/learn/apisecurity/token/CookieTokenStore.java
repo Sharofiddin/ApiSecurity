@@ -48,4 +48,16 @@ public class CookieTokenStore implements TokenStore {
 		token.attributes.putAll(session.attribute("attrs"));
 		return Optional.of(token);
 	}
+
+	@Override
+	public void revoke(Request request, String tokenId) {
+		Session session = request.session(false);
+		if(session == null) return;
+		byte[] provided = Base64url.decode(tokenId);
+		byte[] computed = sha256(session.id());
+		if(!MessageDigest.isEqual(provided, computed)) {
+			return;
+		}
+		session.invalidate();
+	}
 }
