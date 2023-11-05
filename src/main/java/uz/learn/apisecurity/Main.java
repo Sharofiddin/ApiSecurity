@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Set;
 
 import org.dalesbred.Database;
 import org.dalesbred.result.EmptyResultException;
@@ -16,6 +17,7 @@ import com.google.common.util.concurrent.RateLimiter;
 
 import spark.Request;
 import spark.Response;
+import spark.Spark;
 import uz.learn.apisecurity.controller.SpaceController;
 import uz.learn.apisecurity.controller.UserContorller;
 import uz.learn.apisecurity.token.CookieTokenStore;
@@ -23,6 +25,7 @@ import uz.learn.apisecurity.token.TokenController;
 import uz.learn.apisecurity.token.TokenStore;
 import uz.learn.apisecurity.controller.AuditController;
 
+import static spark.Service.SPARK_DEFAULT_PORT;
 import static spark.Spark.*;
 
 public class Main {
@@ -30,6 +33,7 @@ public class Main {
 
 	public static void main(String[] args) throws URISyntaxException, IOException {
 		secure("localhost.p12", "changeit", null, null);
+		Spark.port(args.length == 0 ? SPARK_DEFAULT_PORT : Integer.parseInt(args[0]));
 		staticFileLocation("/public");
 		exception(IllegalArgumentException.class, Main::badRequest);
 		exception(JSONException.class, Main::badRequest);
@@ -41,6 +45,7 @@ public class Main {
 				halt(429);
 			}
 		});
+		before(new CorsFilter(Set.of("https://localhost:9999")));
 		before((req, res)->{
 			if(req.requestMethod().equals("POST") &&
 					!"application/json".equals(req.contentType())) {
