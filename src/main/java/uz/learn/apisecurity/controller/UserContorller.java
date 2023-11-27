@@ -75,6 +75,7 @@ public class UserContorller {
 	
 	public void requireAuthentication(Request request, Response response) {
 	  if(request.attribute("subject") == null) {
+		  response.header("WWW-Authenticate", "Bearer");
 		  halt(401);
 	  }
 	}

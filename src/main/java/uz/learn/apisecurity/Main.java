@@ -1,5 +1,19 @@
 package uz.learn.apisecurity;
 
+import static spark.Service.SPARK_DEFAULT_PORT;
+import static spark.Spark.after;
+import static spark.Spark.afterAfter;
+import static spark.Spark.before;
+import static spark.Spark.delete;
+import static spark.Spark.exception;
+import static spark.Spark.get;
+import static spark.Spark.halt;
+import static spark.Spark.internalServerError;
+import static spark.Spark.notFound;
+import static spark.Spark.post;
+import static spark.Spark.secure;
+import static spark.Spark.staticFileLocation;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -18,15 +32,12 @@ import com.google.common.util.concurrent.RateLimiter;
 import spark.Request;
 import spark.Response;
 import spark.Spark;
+import uz.learn.apisecurity.controller.AuditController;
 import uz.learn.apisecurity.controller.SpaceController;
 import uz.learn.apisecurity.controller.UserContorller;
-import uz.learn.apisecurity.token.CookieTokenStore;
+import uz.learn.apisecurity.token.DatabaseTokenStore;
 import uz.learn.apisecurity.token.TokenController;
 import uz.learn.apisecurity.token.TokenStore;
-import uz.learn.apisecurity.controller.AuditController;
-
-import static spark.Service.SPARK_DEFAULT_PORT;
-import static spark.Spark.*;
 
 public class Main {
 	private static final String ERROR = "error";
@@ -70,7 +81,7 @@ public class Main {
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
 		
-		TokenStore tokenStore = new CookieTokenStore();
+		TokenStore tokenStore = new DatabaseTokenStore(database);
 		var tokenController = new TokenController(tokenStore);
 		before(userController::authenticate);
 		before(tokenController::validateToken);
