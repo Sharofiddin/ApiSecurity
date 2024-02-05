@@ -113,6 +113,11 @@ public class Main {
 		post("/spaces/:spaceId/members", spaceController::addMember);
 		
 		
+		before("/expired_tokens", userController::requireAuthentication);
+		delete("/expired_tokens", (request, respose)->{
+			((DatabaseTokenStore)tokenStore).deleteExpiredTokens();
+			return new JSONObject();
+		});
 		post("/users", userController::registerUser);
 		
 		before("/logs", userController::requireAuthentication);

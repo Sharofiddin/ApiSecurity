@@ -9,7 +9,7 @@ function createSpace(name, owner) {
         body: JSON.stringify(data),
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': getCookie('csrfToken')
+            'Authroization': 'Bearer ' + token
         }
     })
     .then(response => {
