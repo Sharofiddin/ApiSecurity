@@ -20,14 +20,13 @@ public class CorsFilter implements Filter {
 	   String origin = request.headers("Origin");
 	   if(origin != null && allowedOrigins.contains(origin)) {
 		   response.header("Access-Control-Allow-Origin", origin);
-		   response.header("Access-Control-Allow-Credentials", "true");
 		   response.header("Origin", "vary");
 	   }
 	   if(isPreflightRequest(request)) {
 		   if(origin == null || !allowedOrigins.contains(origin)) {
 			   halt(403);
 		   }
-		   response.header("Access-Control-Allow-Headers", "X-CSRF-Token, Content-Type, Authorization");
+		   response.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 		   response.header("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT");
 		   halt(204);
 	   }
