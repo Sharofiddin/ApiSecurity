@@ -1,5 +1,7 @@
 package uz.learn.apisecurity.token;
 
+import static uz.learn.apisecurity.token.CookieTokenStore.sha256;
+
 import java.security.SecureRandom;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,7 +41,7 @@ public class DatabaseTokenStore implements TokenStore {
 		database.updateUnique("""
 				  INSERT INTO tokens(token_id, user_id, expiry, attributes)
 				  VALUES(?,?,?,?)
-				""", tokenId, token.username, token.expiry, attrs);
+				""", hash(tokenId), token.username, token.expiry, attrs);
 		return tokenId;
 	}
 
@@ -48,13 +50,13 @@ public class DatabaseTokenStore implements TokenStore {
 		return database.findOptional(this::readToken, """
 				SELECT user_id, expiry, attributes
 				  FROM tokens WHERE token_id = ?
-				""", tokenId);
+				""", hash(tokenId));
 
 	}
 
 	@Override
 	public void revoke(Request request, String tokenId) {
-		database.update("DELETE FROM tokens WHERE token_id = ?", tokenId);
+		database.update("DELETE FROM tokens WHERE token_id = ?", hash(tokenId));
 	}
 
 	private Token readToken(ResultSet resultset) throws JSONException, SQLException {
@@ -70,6 +72,10 @@ public class DatabaseTokenStore implements TokenStore {
 
 	public void deleteExpiredTokens() {
 		database.update("DELETE FROM tokens WHERE expiry < current_timestamp");
+	}
+	
+	private static String hash(String tokenId) {
+		return Base64url.encode(sha256(tokenId));
 	}
 
 }

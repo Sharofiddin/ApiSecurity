@@ -24,7 +24,7 @@ public class CookieTokenStore implements TokenStore {
 		return Base64url.encode(sha256(session.id()));
 	}
 
-	private byte[] sha256(String tokenId) {
+	public static byte[] sha256(String tokenId) {
 		try {
 			MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
 			return sha256.digest(tokenId.getBytes(StandardCharsets.UTF_8));
