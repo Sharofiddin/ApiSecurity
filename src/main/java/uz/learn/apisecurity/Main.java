@@ -14,10 +14,16 @@ import static spark.Spark.post;
 import static spark.Spark.secure;
 import static spark.Spark.staticFileLocation;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.Set;
 
 import org.dalesbred.Database;
@@ -36,13 +42,14 @@ import uz.learn.apisecurity.controller.AuditController;
 import uz.learn.apisecurity.controller.SpaceController;
 import uz.learn.apisecurity.controller.UserContorller;
 import uz.learn.apisecurity.token.DatabaseTokenStore;
+import uz.learn.apisecurity.token.HmacTokenStore;
 import uz.learn.apisecurity.token.TokenController;
 import uz.learn.apisecurity.token.TokenStore;
 
 public class Main {
 	private static final String ERROR = "error";
 
-	public static void main(String[] args) throws URISyntaxException, IOException {
+	public static void main(String[] args) throws URISyntaxException, IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
 		secure("localhost.p12", "changeit", null, null);
 		Spark.port(args.length == 0 ? SPARK_DEFAULT_PORT : Integer.parseInt(args[0]));
 		staticFileLocation("/public");
@@ -56,6 +63,11 @@ public class Main {
 				halt(429);
 			}
 		});
+		var keyPassword = System.getProperty("keystore.password", "changeit").toCharArray();
+		var keystore = KeyStore.getInstance("PKCS12");
+		keystore.load(new FileInputStream("keystore.p12"), keyPassword);
+		var macKey = keystore.getKey("hmac-key", keyPassword);
+		
 		before(new CorsFilter(Set.of("https://localhost:9999")));
 		before((req, res)->{
 			if(req.requestMethod().equals("POST") &&
@@ -81,8 +93,9 @@ public class Main {
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
 		
-		TokenStore tokenStore = new DatabaseTokenStore(database);
-		var tokenController = new TokenController(tokenStore);
+		TokenStore dbTokenStore = new DatabaseTokenStore(database);
+		HmacTokenStore hmacTokenStore = new HmacTokenStore(dbTokenStore, macKey);
+		var tokenController = new TokenController(hmacTokenStore);
 		before(userController::authenticate);
 		before(tokenController::validateToken);
 		
@@ -115,7 +128,7 @@ public class Main {
 		
 		before("/expired_tokens", userController::requireAuthentication);
 		delete("/expired_tokens", (request, respose)->{
-			((DatabaseTokenStore)tokenStore).deleteExpiredTokens();
+			((DatabaseTokenStore)dbTokenStore).deleteExpiredTokens();
 			return new JSONObject();
 		});
 		post("/users", userController::registerUser);
