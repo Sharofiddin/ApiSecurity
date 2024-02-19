@@ -41,12 +41,13 @@ import spark.Spark;
 import uz.learn.apisecurity.controller.AuditController;
 import uz.learn.apisecurity.controller.SpaceController;
 import uz.learn.apisecurity.controller.UserContorller;
-import uz.learn.apisecurity.token.DatabaseTokenStore;
 import uz.learn.apisecurity.token.HmacTokenStore;
+import uz.learn.apisecurity.token.JsonTokenStore;
 import uz.learn.apisecurity.token.TokenController;
 import uz.learn.apisecurity.token.TokenStore;
 
 public class Main {
+	private static final String SESSIONS = "/sessions";
 	private static final String ERROR = "error";
 
 	public static void main(String[] args) throws URISyntaxException, IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
@@ -93,8 +94,8 @@ public class Main {
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
 		
-		TokenStore dbTokenStore = new DatabaseTokenStore(database);
-		HmacTokenStore hmacTokenStore = new HmacTokenStore(dbTokenStore, macKey);
+		TokenStore jsonTokenStore = new JsonTokenStore();
+		HmacTokenStore hmacTokenStore = new HmacTokenStore(jsonTokenStore, macKey);
 		var tokenController = new TokenController(hmacTokenStore);
 		before(userController::authenticate);
 		before(tokenController::validateToken);
@@ -103,9 +104,9 @@ public class Main {
 		before(auditController::auditRequestStart);
 		afterAfter(auditController::auditRequestEnd);
 		
-		before("/sessions", userController::requireAuthentication);
-		post("/sessions", tokenController::login);
-		delete("/sessions", tokenController::logout);
+		before(SESSIONS, userController::requireAuthentication);
+		post(SESSIONS, tokenController::login);
+		delete(SESSIONS, tokenController::logout);
 
         before("/spaces", userController::requireAuthentication);
 		post("/spaces", spaceController::createSpace);
@@ -125,12 +126,6 @@ public class Main {
 		before("/spaces/:spaceId/members", userController.requirePermission("POST", "rwd"));
 		post("/spaces/:spaceId/members", spaceController::addMember);
 		
-		
-		before("/expired_tokens", userController::requireAuthentication);
-		delete("/expired_tokens", (request, respose)->{
-			((DatabaseTokenStore)dbTokenStore).deleteExpiredTokens();
-			return new JSONObject();
-		});
 		post("/users", userController::registerUser);
 		
 		before("/logs", userController::requireAuthentication);
