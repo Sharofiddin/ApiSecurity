@@ -26,6 +26,8 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.Set;
 
+import javax.crypto.SecretKey;
+
 import org.dalesbred.Database;
 import org.dalesbred.result.EmptyResultException;
 import org.h2.jdbcx.JdbcConnectionPool;
@@ -34,6 +36,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.google.common.util.concurrent.RateLimiter;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
 
 import spark.Request;
 import spark.Response;
@@ -43,6 +51,7 @@ import uz.learn.apisecurity.controller.SpaceController;
 import uz.learn.apisecurity.controller.UserContorller;
 import uz.learn.apisecurity.token.HmacTokenStore;
 import uz.learn.apisecurity.token.JsonTokenStore;
+import uz.learn.apisecurity.token.SignedJwtTokenStore;
 import uz.learn.apisecurity.token.TokenController;
 import uz.learn.apisecurity.token.TokenStore;
 
@@ -50,7 +59,7 @@ public class Main {
 	private static final String SESSIONS = "/sessions";
 	private static final String ERROR = "error";
 
-	public static void main(String[] args) throws URISyntaxException, IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
+	public static void main(String[] args) throws URISyntaxException, IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, JOSEException {
 		secure("localhost.p12", "changeit", null, null);
 		Spark.port(args.length == 0 ? SPARK_DEFAULT_PORT : Integer.parseInt(args[0]));
 		staticFileLocation("/public");
@@ -93,10 +102,11 @@ public class Main {
 		database = Database.forDataSource(datasource);
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
-		
-		TokenStore jsonTokenStore = new JsonTokenStore();
-		HmacTokenStore hmacTokenStore = new HmacTokenStore(jsonTokenStore, macKey);
-		var tokenController = new TokenController(hmacTokenStore);
+		JWSAlgorithm algorithm = JWSAlgorithm.HS256;
+		JWSVerifier verifier = new MACVerifier((SecretKey)macKey);
+        JWSSigner signer = new MACSigner((SecretKey)macKey);
+		TokenStore tokenStore = new SignedJwtTokenStore(signer,verifier, algorithm, "https://localhost:4567");
+		var tokenController = new TokenController(tokenStore);
 		before(userController::authenticate);
 		before(tokenController::validateToken);
 		
