@@ -26,8 +26,6 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.Set;
 
-import javax.crypto.SecretKey;
-
 import org.dalesbred.Database;
 import org.dalesbred.result.EmptyResultException;
 import org.h2.jdbcx.JdbcConnectionPool;
@@ -37,11 +35,6 @@ import org.json.JSONObject;
 
 import com.google.common.util.concurrent.RateLimiter;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSSigner;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
 
 import spark.Request;
 import spark.Response;
@@ -49,11 +42,13 @@ import spark.Spark;
 import uz.learn.apisecurity.controller.AuditController;
 import uz.learn.apisecurity.controller.SpaceController;
 import uz.learn.apisecurity.controller.UserContorller;
-import uz.learn.apisecurity.token.SignedJwtTokenStore;
+import uz.learn.apisecurity.token.EncryptedJwtTokenStore;
+import uz.learn.apisecurity.token.SecureTokenStore;
 import uz.learn.apisecurity.token.TokenController;
 import uz.learn.apisecurity.token.TokenStore;
 
 public class Main {
+	private static final String AUDIENCE = "https://localhost:4567";
 	private static final String SESSIONS = "/sessions";
 	private static final String ERROR = "error";
 
@@ -74,8 +69,7 @@ public class Main {
 		var keyPassword = System.getProperty("keystore.password", "changeit").toCharArray();
 		var keystore = KeyStore.getInstance("PKCS12");
 		keystore.load(new FileInputStream("keystore.p12"), keyPassword);
-		var macKey = keystore.getKey("hmac-key", keyPassword);
-		
+		var encKey = keystore.getKey("aes-key", keyPassword);
 		before(new CorsFilter(Set.of("https://localhost:9999")));
 		before((req, res)->{
 			if(req.requestMethod().equals("POST") &&
@@ -100,10 +94,7 @@ public class Main {
 		database = Database.forDataSource(datasource);
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
-		JWSAlgorithm algorithm = JWSAlgorithm.HS256;
-		JWSVerifier verifier = new MACVerifier((SecretKey)macKey);
-        JWSSigner signer = new MACSigner((SecretKey)macKey);
-		TokenStore tokenStore = new SignedJwtTokenStore(signer,verifier, algorithm, "https://localhost:4567");
+		SecureTokenStore tokenStore = new EncryptedJwtTokenStore(encKey, AUDIENCE);
 		var tokenController = new TokenController(tokenStore);
 		before(userController::authenticate);
 		before(tokenController::validateToken);

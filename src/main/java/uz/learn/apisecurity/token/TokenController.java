@@ -12,9 +12,9 @@ import spark.Spark;
 public class TokenController {
 	private static final String AUTHORIZATION = "Authorization";
 	private static final String BEARER = "Bearer ";
-	private final TokenStore tokenStore;
+	private final SecureTokenStore tokenStore;
 
-	public TokenController(TokenStore tokenStore) {
+	public TokenController(SecureTokenStore tokenStore) {
 		this.tokenStore = tokenStore;
 	}
 
