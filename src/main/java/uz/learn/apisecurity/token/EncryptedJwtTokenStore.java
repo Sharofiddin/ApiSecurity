@@ -25,15 +25,21 @@ public class EncryptedJwtTokenStore implements SecureTokenStore {
 
 	private final SecretKey key;
 	private final String audience;
+	private final DatabaseTokenStore allowListTokenStore;
 
-	public EncryptedJwtTokenStore(Key key, String audience) {
+	public EncryptedJwtTokenStore(Key key, String audience, DatabaseTokenStore allowListTokenStore) {
 		this.key = (SecretKey)key;
 		this.audience = audience;
+		this.allowListTokenStore = allowListTokenStore;
 	}
 
 	@Override
 	public String create(Request request, Token token) {
-		JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder().subject(token.username).audience(audience)
+		Token allowListToken = new Token(token.username, token.expiry);
+		String jwtId = allowListTokenStore.create(request, allowListToken);
+		JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+				.jwtID(jwtId)
+				.subject(token.username).audience(audience)
 				.expirationTime(Date.from(token.expiry)).claim("attrs", token.attributes).build();
 		JWEHeader jweHeader = new JWEHeader(JWEAlgorithm.DIR, EncryptionMethod.A128CBC_HS256);
 		EncryptedJWT encryptedJWT = new EncryptedJWT(jweHeader, jwtClaimsSet);
@@ -57,7 +63,10 @@ public class EncryptedJwtTokenStore implements SecureTokenStore {
 			if (!jwtClaimsSet.getAudience().contains(audience)) {
 				throw new JOSEException("Incorrect audience");
 			}
-
+			String jwtid = jwtClaimsSet.getJWTID();
+			if(allowListTokenStore.read(request, jwtid).isEmpty()) {
+				return Optional.empty();
+			}
 			Instant expiry = jwtClaimsSet.getExpirationTime().toInstant();
 			String subject = jwtClaimsSet.getSubject();
 			Token token = new Token(subject, expiry);
@@ -76,7 +85,15 @@ public class EncryptedJwtTokenStore implements SecureTokenStore {
 
 	@Override
 	public void revoke(Request request, String tokenId) {
-
+		try {
+			var jwt = EncryptedJWT.parse(tokenId);
+			var decrypter = new DirectDecrypter(key);
+			jwt.decrypt(decrypter);
+			JWTClaimsSet claims = jwt.getJWTClaimsSet();
+			allowListTokenStore.revoke(request, claims.getJWTID());
+		} catch (ParseException | JOSEException e) {
+		   throw new IllegalArgumentException("Invalid token",e);
+		}
 	}
 
 }

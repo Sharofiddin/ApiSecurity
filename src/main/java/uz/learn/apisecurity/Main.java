@@ -42,10 +42,10 @@ import spark.Spark;
 import uz.learn.apisecurity.controller.AuditController;
 import uz.learn.apisecurity.controller.SpaceController;
 import uz.learn.apisecurity.controller.UserContorller;
+import uz.learn.apisecurity.token.DatabaseTokenStore;
 import uz.learn.apisecurity.token.EncryptedJwtTokenStore;
 import uz.learn.apisecurity.token.SecureTokenStore;
 import uz.learn.apisecurity.token.TokenController;
-import uz.learn.apisecurity.token.TokenStore;
 
 public class Main {
 	private static final String AUDIENCE = "https://localhost:4567";
@@ -94,7 +94,8 @@ public class Main {
 		database = Database.forDataSource(datasource);
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
-		SecureTokenStore tokenStore = new EncryptedJwtTokenStore(encKey, AUDIENCE);
+		DatabaseTokenStore databaseTokenStore = new DatabaseTokenStore(database);
+		SecureTokenStore tokenStore = new EncryptedJwtTokenStore(encKey, AUDIENCE, databaseTokenStore);
 		var tokenController = new TokenController(tokenStore);
 		before(userController::authenticate);
 		before(tokenController::validateToken);

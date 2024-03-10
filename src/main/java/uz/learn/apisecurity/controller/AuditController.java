@@ -1,12 +1,16 @@
 package uz.learn.apisecurity.controller;
 
-import org.dalesbred.*;
-import org.json.*;
-import spark.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
-import java.sql.*;
-import java.time.*;
-import java.time.temporal.*;
+import org.dalesbred.Database;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import spark.Request;
+import spark.Response;
 
 public class AuditController {
 	private final Database database;
