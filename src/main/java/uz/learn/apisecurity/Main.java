@@ -16,6 +16,7 @@ import static spark.Spark.staticFileLocation;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -42,16 +43,16 @@ import spark.Spark;
 import uz.learn.apisecurity.controller.AuditController;
 import uz.learn.apisecurity.controller.SpaceController;
 import uz.learn.apisecurity.controller.UserContorller;
-import uz.learn.apisecurity.token.DatabaseTokenStore;
-import uz.learn.apisecurity.token.EncryptedJwtTokenStore;
+import uz.learn.apisecurity.token.Oauth2TokenStore;
 import uz.learn.apisecurity.token.SecureTokenStore;
 import uz.learn.apisecurity.token.TokenController;
 
 public class Main {
-	private static final String AUDIENCE = "https://localhost:4567";
+	private static final String SPACES = "/spaces";
 	private static final String SESSIONS = "/sessions";
 	private static final String ERROR = "error";
-
+    private static final String CLIENT_ID = "test";
+    private static final String CLIENT_SECRET = "aaSNKLtdz13Fc6C91RHJ3NCaqeg3HVCK";
 	public static void main(String[] args) throws URISyntaxException, IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, JOSEException {
 		secure("localhost.p12", "changeit", null, null);
 		Spark.port(args.length == 0 ? SPARK_DEFAULT_PORT : Integer.parseInt(args[0]));
@@ -69,7 +70,6 @@ public class Main {
 		var keyPassword = System.getProperty("keystore.password", "changeit").toCharArray();
 		var keystore = KeyStore.getInstance("PKCS12");
 		keystore.load(new FileInputStream("keystore.p12"), keyPassword);
-		var encKey = keystore.getKey("aes-key", keyPassword);
 		before(new CorsFilter(Set.of("https://localhost:9999")));
 		before((req, res)->{
 			if(req.requestMethod().equals("POST") &&
@@ -94,8 +94,8 @@ public class Main {
 		database = Database.forDataSource(datasource);
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
-		DatabaseTokenStore databaseTokenStore = new DatabaseTokenStore(database);
-		SecureTokenStore tokenStore = new EncryptedJwtTokenStore(encKey, AUDIENCE, databaseTokenStore);
+		URI introspectionEndpoint = URI.create("http://localhost:8080/realms/test/protocol/openid-connect/token/introspect");
+		SecureTokenStore tokenStore = new Oauth2TokenStore(introspectionEndpoint, CLIENT_ID, CLIENT_SECRET);
 		var tokenController = new TokenController(tokenStore);
 		before(userController::authenticate);
 		before(tokenController::validateToken);
@@ -105,29 +105,35 @@ public class Main {
 		afterAfter(auditController::auditRequestEnd);
 		
 		before(SESSIONS, userController::requireAuthentication);
+		before(SESSIONS, tokenController.requireScope("POST","full_access"));
 		post(SESSIONS, tokenController::login);
 		delete(SESSIONS, tokenController::logout);
-
-        before("/spaces", userController::requireAuthentication);
-		post("/spaces", spaceController::createSpace);
+        
+		before(SPACES, tokenController.requireScope("POST", "create_space"));
+        before(SPACES, userController::requireAuthentication);
+		post(SPACES, spaceController::createSpace);
 		
 		before("/spaces/:spaceId/messages/*", userController.requirePermission("GET", "r"));
+		before("/spaces/:spaceId/messages/*", tokenController.requireScope("GET", "read_message"));
 		get("/spaces/:spaceId/messages/:msgId", spaceController::readMessage);
 		
 		before("/spaces/:spaceId/messages", userController.requirePermission("GET", "r"));
+		before("/spaces/:spaceId/messages", tokenController.requireScope("GET", "list_messages"));
 		get("/spaces/:spaceId/messages", spaceController::findMessages);
 		
 		before("/spaces/:spaceId/messages", userController.requirePermission("POST", "w"));
+		before("/spaces/:spaceId/messages", tokenController.requireScope("POST", "post_message"));
 		post("/spaces/:spaceId/messages", spaceController::postMessage);
 		
 		before("/spaces/:spaceId/messages/:msgId", userController.requirePermission("DELETE", "d"));
+		before("/spaces/:spaceId/messages/:msgId", tokenController.requireScope("DELETE", "delete_message"));
 		delete("/spaces/:spaceId/messages/:msgId", spaceController::deleteMessage);
 		
 		before("/spaces/:spaceId/members", userController.requirePermission("POST", "rwd"));
+		before("/spaces/:spaceId/members", tokenController.requireScope("POST", "add_member"));
 		post("/spaces/:spaceId/members", spaceController::addMember);
 		
 		post("/users", userController::registerUser);
-		
 		before("/logs", userController::requireAuthentication);
 		get("/logs", auditController::readAuditLog);
 		

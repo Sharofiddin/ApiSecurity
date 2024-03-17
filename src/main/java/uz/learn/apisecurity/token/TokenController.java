@@ -2,9 +2,11 @@ package uz.learn.apisecurity.token;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Set;
 
 import org.json.JSONObject;
 
+import spark.Filter;
 import spark.Request;
 import spark.Response;
 import spark.Spark;
@@ -57,6 +59,24 @@ public class TokenController {
 		tokenStore.revoke(request, tokenId);
 		response.status(204);
 		return new JSONObject();
+	}
+
+	public Filter requireScope(String method, String requiredScope) {
+		return(request, response) ->{
+			if(!request.requestMethod().equalsIgnoreCase(method)) {
+				return;
+			}
+			var tokenScope = request.<String>attribute("scope");
+			if(tokenScope == null) {
+				return;
+			}
+			if(!Set.of(tokenScope.split(" ")).contains(requiredScope)) {
+				response.header("WWW-Authenticate", """
+						  Bearer error="insufficient_scope", scope="%s"
+						""".formatted(requiredScope));
+				Spark.halt(403);
+			}
+		};
 	}
 
 }

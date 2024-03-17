@@ -24,3 +24,9 @@ curl -i -c cookies -u demo:1qazxsw2 -X POST  -H 'Content-Type: application/json'
 curl -i  -u demo:1qazxsw2 -X POST  -H 'Content-Type: application/json' https://localhost:4567/sessions
 # create space with cookie
 curl -i -b cookies -X POST -H 'Content-Type: application/json' -d '{"name":"demoSpace", "owner":"demo"}' https://localhost:4567/spaces
+
+# keycloak get acces token
+curl -u test:aaSNKLtdz13Fc6C91RHJ3NCaqeg3HVCK http://localhost:8080/realms/test/protocol/openid-connect/token -d 'grant_type=password&scope=create_space+post_message&username=demo&password=1qazxsw2'
+
+# auth with access token
+curl -H 'Content-Type: application/json' -H 'Authorization: Bearer '  -d '{"name":"test","owner":"demo"}' https://localhost:4567/spaces
