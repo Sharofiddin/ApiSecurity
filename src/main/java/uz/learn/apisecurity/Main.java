@@ -27,6 +27,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.Set;
 
+
 import org.dalesbred.Database;
 import org.dalesbred.result.EmptyResultException;
 import org.h2.jdbcx.JdbcConnectionPool;
@@ -67,6 +68,7 @@ public class Main {
 				halt(429);
 			}
 		});
+
 		var keyPassword = System.getProperty("keystore.password", "changeit").toCharArray();
 		var keystore = KeyStore.getInstance("PKCS12");
 		keystore.load(new FileInputStream("keystore.p12"), keyPassword);
@@ -94,7 +96,7 @@ public class Main {
 		database = Database.forDataSource(datasource);
 		var spaceController = new SpaceController(database);
 		var userController = new UserContorller(database);
-		URI introspectionEndpoint = URI.create("http://localhost:8080/realms/test/protocol/openid-connect/token/introspect");
+		URI introspectionEndpoint = URI.create("https://keycloak:8443/realms/test/protocol/openid-connect/token/introspect");
 		SecureTokenStore tokenStore = new Oauth2TokenStore(introspectionEndpoint, CLIENT_ID, CLIENT_SECRET);
 		var tokenController = new TokenController(tokenStore);
 		before(userController::authenticate);

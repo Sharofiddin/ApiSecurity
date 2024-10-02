@@ -1,5 +1,6 @@
 package uz.learn.apisecurity.token;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -8,9 +9,19 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
+
+import javax.management.RuntimeErrorException;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.json.JSONObject;
 
@@ -26,7 +37,36 @@ public class Oauth2TokenStore implements SecureTokenStore {
 		this.introspectionEndpoint = introspectionEndpoint;
 		var credential = URLEncoder.encode(clientId, StandardCharsets.UTF_8)+ ":" +URLEncoder.encode(clientSecret, StandardCharsets.UTF_8);
 		this.authorization = "Basic " + Base64.getEncoder().encodeToString(credential.getBytes(StandardCharsets.UTF_8));
-		this.httpClient = HttpClient.newHttpClient();
+		var sslParams = new SSLParameters();
+		sslParams.setProtocols(new String[]{"TLSv1.3", "TLSv1.2"});
+		sslParams.setCipherSuites(new String[] {
+				 // TLSv1.3
+		        "TLS_AES_128_GCM_SHA256",
+		        "TLS_AES_256_GCM_SHA384",
+		        "TLS_CHACHA20_POLY1305_SHA256",
+		 
+		        // TLSv1.2
+		        "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+		        "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+		        "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+		        "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+		        "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+		        "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"}
+				);
+		sslParams.setUseCipherSuitesOrder(true);
+		sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+		try {
+			var trustedCerts = KeyStore.getInstance("PKCS12");
+			trustedCerts.load(new FileInputStream("keycloak.p12"), "changeit".toCharArray());
+		    var tmf = TrustManagerFactory.getInstance("PKIX");
+		    tmf.init(trustedCerts);
+		    var sslContext = SSLContext.getInstance("TLS");
+		    sslContext.init(null, tmf.getTrustManagers(), null);
+		    this.httpClient = HttpClient.newBuilder()
+		    		.sslContext(sslContext).sslParameters(sslParams).build();
+		} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException | KeyManagementException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override

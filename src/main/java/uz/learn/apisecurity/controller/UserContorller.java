@@ -48,29 +48,31 @@ public class UserContorller {
 	}
 
 	public void authenticate(Request request, Response response) {
-		var authHeader = request.headers("Authorization");
-		if(authHeader == null || !authHeader.startsWith(BASIC)) {
-			return;
-		}
-		
-		var offset = BASIC.length();
-		var credentials = new String(Base64.getDecoder().decode(authHeader.substring(offset)), StandardCharsets.UTF_8);
-		var components = credentials.split(":");
-		if(components.length != 2) {
-			throw new IllegalArgumentException("Invalid auth header");
-		}
-		var username = components[0];
-		var password = components[1];
-		
-		if(!username.matches(USERNAME_PATTERN)) {
-			throw new IllegalArgumentException("Invalid username");
-		}
-		
-		var hash = database.findOptional(String.class, 
-				"SELECT pw_hash FROM users where user_id=?", username);
-		if(hash.isPresent() && SCryptUtil.check(password, hash.get())) {
-			request.attribute("subject", username);
-		}
+		// auth only form kc
+		return ;
+//		var authHeader = request.headers("Authorization");
+//		if(authHeader == null || !authHeader.startsWith(BASIC)) {
+//			return;
+//		}
+//		
+//		var offset = BASIC.length();
+//		var credentials = new String(Base64.getDecoder().decode(authHeader.substring(offset)), StandardCharsets.UTF_8);
+//		var components = credentials.split(":");
+//		if(components.length != 2) {
+//			throw new IllegalArgumentException("Invalid auth header");
+//		}
+//		var username = components[0];
+//		var password = components[1];
+//		
+//		if(!username.matches(USERNAME_PATTERN)) {
+//			throw new IllegalArgumentException("Invalid username");
+//		}
+//		
+//		var hash = database.findOptional(String.class, 
+//				"SELECT pw_hash FROM users where user_id=?", username);
+//		if(hash.isPresent() && SCryptUtil.check(password, hash.get())) {
+//			request.attribute("subject", username);
+//		}
 	}
 	
 	public void requireAuthentication(Request request, Response response) {
